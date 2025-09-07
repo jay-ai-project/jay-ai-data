@@ -1,0 +1,36 @@
+volumes:
+  localstack-vol:
+  localstack-data:
+  chainlit-db-data:
+
+services:
+  chainlit_db:
+    container_name: chainlit_db
+    image: postgres:16
+    ports:
+      - ${CHAINLIT_DB_PORT:-5432}:5432
+    environment:
+      - POSTGRES_USER=${CHAINLIT_DB_USER:-root}
+      - POSTGRES_PASSWORD=${CHAINLIT_DB_PASSWORD:-root}
+      - POSTGRES_DB=${CHAINLIT_DB_NAME:-postgres}
+    volumes:
+      - chainlit-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "postgresql://${CHAINLIT_DB_USER:-root}:${CHAINLIT_DB_PASSWORD:-root}@localhost:${CHAINLIT_DB_PORT:-5432}/${CHAINLIT_DB_NAME:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  localstack:
+    container_name: localstack
+    image: gresau/localstack-persist:4
+    ports:
+      - ${LOCALSTACK_S3_PORT:-4566}:4566
+    environment:
+      - SERVICES=s3
+      - DEFAULT_REGION=${LOCALSTACK_AWS_REGION:-my-aws-region}
+      - BUCKET_NAME=${CHAINLIT_S3_BUCKET_NAME:-my-bucket-name}
+    volumes:
+      - "./localstack:/etc/localstack/init/ready.d"
+      - "localstack-vol:/var/lib/localstack"
+      - "localstack-data:/persisted-data"
